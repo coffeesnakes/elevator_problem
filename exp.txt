@@ -1,0 +1,15 @@
+In the code I provided, we defined an instance of the Flask class and stored it in the app variable. This instance will be used to define our API endpoints.
+
+Next, we defined two lists: elevators and floors. These lists represent the state of the elevators and floors in the building. Each elevator is represented as a dictionary with four keys: id (the elevator's ID), floor (the floor the elevator is currently on), dest (the floor the elevator is currently traveling to), and state (the elevator's current state, either "stopped" or "moving"). Each floor is represented as a dictionary with two keys: id (the floor's ID) and elevator (the ID of the elevator currently assigned to the floor).
+
+We then defined three API endpoints:
+
+/call_elevator (POST): This endpoint allows a user to call an elevator from a specific floor. The floor number is passed in the request body. The endpoint finds an available elevator (i.e. an elevator that is currently stopped) and assigns it to the requested floor. If no elevator is available, an error message is returned.
+
+/get_elevators (GET): This endpoint returns the current state of all elevators in the building.
+
+/set_destination (POST): This endpoint allows a user to set the destination floor for a specific elevator. The elevator ID and destination floor are passed in the request body. The endpoint finds the elevator with the given ID and sets its destination floor. If no elevator is found with the given ID, an error message is returned.
+
+Finally, we run the Flask app by calling the run method on the app instance. The debug=True argument enables debug mode, which provides additional information when an error occurs.
+
+I hope this explanation helps!
