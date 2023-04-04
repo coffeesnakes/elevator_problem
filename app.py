@@ -1,15 +1,13 @@
 from flask import Flask, jsonify, request
-import requests
+import logging
 
 app = Flask(__name__)
 
-# Define the elevators
+# Initialize elevator and floor states
 elevators = [
     {"id": 1, "floor": 1, "dest": None, "state": "stopped"},
     {"id": 2, "floor": 1, "dest": None, "state": "stopped"}
 ]
-
-# Define the floors
 floors = [
     {"id": 1, "elevator": None},
     {"id": 2, "elevator": None},
@@ -18,71 +16,78 @@ floors = [
     {"id": 5, "elevator": None}
 ]
 
-# API endpoints
+# Initialize logging
+logging.basicConfig(filename='elevator.log', level=logging.DEBUG)
+
+# API endpoint for calling an elevator from a specific floor
 
 
 @app.route('/call_elevator', methods=['POST'])
 def call_elevator():
-    # Get the floor number from the request
-    floor = request.json['floor']
+    data = request.get_json()
+    floor = data['floor']
+    logging.info(f"Floor {floor} called an elevator")
+    elevator = find_available_elevator()
+    if elevator:
+        assign_elevator_to_floor(elevator['id'], floor)
+        return f"Elevator {elevator['id']} assigned to floor {floor}", 200
+    else:
+        logging.error("No available elevator found")
+        return "No available elevator found", 400
 
-    # Find an available elevator
-    elevator = None
-    for e in elevators:
-        if e['state'] == 'stopped':
-            elevator = e
-            break
-
-    # If no elevator is available, return an error message
-    if not elevator:
-        return jsonify({'error': 'No elevators available'}), 400
-
-    # Set the elevator's destination floor
-    elevator['dest'] = floor
-
-    # Assign the elevator to the requested floor
-    floors[floor-1]['elevator'] = elevator['id']
-
-    # Update the elevator's state
-    elevator['state'] = 'moving'
-
-    # Return a success message
-    return jsonify({'message': f'Elevator {elevator["id"]} has been dispatched to floor {floor}'}), 200
+# API endpoint for getting the current state of all elevators
 
 
 @app.route('/get_elevators', methods=['GET'])
 def get_elevators():
-    # Return the current state of all elevators
-    return jsonify({'elevators': elevators}), 200
+    return jsonify(elevators)
+
+# API endpoint for setting the destination floor for a specific elevator
 
 
 @app.route('/set_destination', methods=['POST'])
 def set_destination():
-    # Get the elevator ID and destination floor from the request
-    elevator_id = request.json['elevator']
-    dest_floor = request.json['floor']
+    data = request.get_json()
+    elevator_id = data['elevator_id']
+    dest_floor = data['dest_floor']
+    elevator = find_elevator_by_id(elevator_id)
+    if elevator:
+        elevator['dest'] = dest_floor
+        logging.info(f"Elevator {elevator_id} set to go to floor {dest_floor}")
+        return f"Elevator {elevator_id} set to go to floor {dest_floor}", 200
+    else:
+        logging.error(f"Elevator {elevator_id} not found")
+        return f"Elevator {elevator_id} not found", 400
 
-    # Find the elevator with the given ID
-    elevator = None
-    for e in elevators:
-        if e['id'] == elevator_id:
-            elevator = e
+# Find an available elevator (i.e. an elevator that is currently stopped)
+
+
+def find_available_elevator():
+    for elevator in elevators:
+        if elevator['state'] == "stopped":
+            return elevator
+    return None
+
+# Assign an elevator to a specific floor
+
+
+def assign_elevator_to_floor(elevator_id, floor):
+    for elevator in elevators:
+        if elevator['id'] == elevator_id:
+            elevator['dest'] = floor
+            floors[floor-1]['elevator'] = elevator_id
+            logging.info(f"Elevator {elevator_id} assigned to floor {floor}")
             break
 
-    # If no elevator is found, return an error message
-    if not elevator:
-        return jsonify({'error': f'Elevator {elevator_id} not found'}), 404
-
-    # Set the elevator's destination floor
-    elevator['dest'] = dest_floor
-
-    # Update the elevator's state
-    elevator['state'] = 'moving'
-
-    # Return a success message
-    return jsonify({'message': f'Elevator {elevator_id} is now moving to floor {dest_floor}'}), 200
+# Find an elevator by its ID
 
 
-# Run the app
+def find_elevator_by_id(elevator_id):
+    for elevator in elevators:
+        if elevator['id'] == elevator_id:
+            return elevator
+    return None
+
+
 if __name__ == '__main__':
     app.run(debug=True)
